@@ -1,0 +1,54 @@
+version: "3.7"
+
+networks:
+  internal:
+
+volumes:
+  app-data:
+
+services:
+  database:
+    image: mysql:8
+    restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password
+    networks:
+      - internal
+    volumes:
+      - app-data:/var/lib/mysql
+    ports:
+      - $DB_PORT:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: $DB_ROOT_PASSWORD
+      MYSQL_DATABASE: $DB_DATABASE
+      MYSQL_USER: $DB_USERNAME
+      MYSQL_PASSWORD: $DB_PASSWORD
+
+  app:
+    build:
+      context: ./
+      dockerfile: app.Dockerfile
+    image: sample-app
+    networks:
+      - internal
+    volumes:
+      - ./:/var/www
+    depends_on:
+      - database
+    environment:
+      DB_HOST: database
+
+  web:
+    build:
+      context: ./
+      dockerfile: web.Dockerfile
+    image: sample-web
+    networks:
+      - internal
+    ports:
+      - 8080:80
+    volumes:
+      - ./:/var/www
+    depends_on:
+      - app
+    environment:
+      DB_HOST: database
